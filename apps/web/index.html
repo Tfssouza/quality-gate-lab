@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quality Gate Lab</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 820px; margin: 40px auto; padding: 0 16px; }
+    .card { border: 1px solid #ddd; border-radius: 10px; padding: 16px; margin: 12px 0; }
+    input, button { padding: 10px; margin: 6px 0; width: 100%; }
+    button { cursor: pointer; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    code { background: #f6f6f6; padding: 2px 6px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>Quality Gate Lab</h1>
+  <p>Demo UI to validate <code>API + E2E</code> flows.</p>
+
+  <div class="card">
+    <h2>Login</h2>
+    <div class="row">
+      <div>
+        <label>Email</label>
+        <input id="email" value="qa@demo.com" />
+      </div>
+      <div>
+        <label>Password</label>
+        <input id="password" type="password" value="Password123" />
+      </div>
+    </div>
+    <button id="btnLogin">Sign in</button>
+    <p id="loginStatus"></p>
+  </div>
+
+  <div class="card">
+    <h2>Products</h2>
+    <button id="btnLoad">Load products</button>
+    <ul id="products"></ul>
+  </div>
+
+  <script>
+    const API = "http://localhost:3001";
+    let token = null;
+
+    const el = (id) => document.getElementById(id);
+
+    el("btnLogin").onclick = async () => {
+      el("loginStatus").textContent = "Signing in...";
+      const res = await fetch(`${API}/auth/login`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: el("email").value, password: el("password").value })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        el("loginStatus").textContent = `Login failed: ${data.error}`;
+        return;
+      }
+
+      token = data.token;
+      el("loginStatus").textContent = `Logged in as ${data.email}`;
+    };
+
+    el("btnLoad").onclick = async () => {
+      el("products").innerHTML = "<li>Loading...</li>";
+      const res = await fetch(`${API}/products`);
+      const data = await res.json();
+      el("products").innerHTML = data.items
+        .map(p => `<li>#${p.id} - ${p.name} (€${(p.priceCents/100).toFixed(2)})</li>`)
+        .join("");
+    };
+  </script>
+</body>
+</html>
