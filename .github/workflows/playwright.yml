@@ -1,88 +1,129 @@
-name: Quality Gate (Playwright)
+name: Booking quality gate
 
 on:
-  pull_request:
-    branches: [ "main" ]
   push:
-    branches: [ "main" ]
+    branches: [main, "codex/**"]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
-  schedule:
-    - cron: "0 2 * * *" # regressão diária 02:00 UTC
+
+permissions:
+  contents: read
 
 concurrency:
-  group: qa-gate-${{ github.ref }}
+  group: booking-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  quality-gate:
+  api:
+    name: Build and API / PostgreSQL
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17.9-bookworm
+        env:
+          POSTGRES_DB: quality_gate_test
+          POSTGRES_USER: booking
+          POSTGRES_PASSWORD: booking-demo
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U booking -d quality_gate_test"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgresql://booking:booking-demo@127.0.0.1:5432/quality_gate_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm audit --audit-level=high
+      - run: npm run build
+      - run: npm run test:api 2>&1 | tee test-run.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-evidence
+          path: |
+            playwright-report/
+            test-results/
+            test-run.log
 
+  browsers:
+    name: E2E / ${{ matrix.browser }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
         browser: [chromium, firefox, webkit]
-
+    services:
+      postgres:
+        image: postgres:17.9-bookworm
+        env:
+          POSTGRES_DB: quality_gate_test
+          POSTGRES_USER: booking
+          POSTGRES_PASSWORD: booking-demo
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U booking -d quality_gate_test"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgresql://booking:booking-demo@127.0.0.1:5432/quality_gate_test
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
-
-      - name: Start API (background)
-        run: |
-          nohup node apps/api/server.js > api.log 2>&1 &
-          sleep 1
-
-      - name: Start Web (background)
-        run: |
-          nohup node apps/web/server.js > web.log 2>&1 &
-          sleep 1
-
-      - name: Wait for services
-        run: |
-          curl -sSf http://localhost:3001/health
-          curl -sSf http://localhost:3000
-
-      - name: Run API tests
-        run: npx playwright test tests/api --project=${{ matrix.browser }} --reporter=html
-
-      - name: Run E2E tests
-        run: npx playwright test tests/e2e --project=${{ matrix.browser }} --reporter=html
-
-      - name: Rename report folder per browser (always)
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npm test -- --project=${{ matrix.browser }} 2>&1 | tee test-run.log
+      - uses: actions/upload-artifact@v4
         if: always()
-        run: |
-          if [ -d "playwright-report" ]; then
-            mv playwright-report playwright-report-${{ matrix.browser }}
-          else
-            mkdir -p playwright-report-${{ matrix.browser }}
-          fi
-
-      - name: Upload Playwright report (always)
-        if: always()
-        uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ matrix.browser }}
-          path: playwright-report-${{ matrix.browser }}/
-          retention-days: 7
-
-      - name: Upload logs (always)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: service-logs-${{ matrix.browser }}
+          name: e2e-${{ matrix.browser }}-evidence
           path: |
-            api.log
-            web.log
-          retention-days: 7
+            playwright-report/
+            test-results/
+            test-run.log
+
+  docker:
+    name: Docker production smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: docker compose up --build --wait --wait-timeout 120
+      - run: node scripts/smoke.mjs http://127.0.0.1:3000
+      - run: docker compose logs --no-color > docker.log
+        if: always()
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: docker-evidence
+          path: docker.log
+      - run: docker compose down
+        if: always()
+
+  quality-gate:
+    name: Quality gate
+    runs-on: ubuntu-latest
+    needs: [api, browsers, docker]
+    if: always()
+    steps:
+      - name: Require all checks
+        env:
+          API_RESULT: ${{ needs.api.result }}
+          BROWSER_RESULT: ${{ needs.browsers.result }}
+          DOCKER_RESULT: ${{ needs.docker.result }}
+        run: |
+          test "$API_RESULT" = success
+          test "$BROWSER_RESULT" = success
+          test "$DOCKER_RESULT" = success

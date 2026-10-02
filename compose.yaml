@@ -1,0 +1,36 @@
+services:
+  database:
+    image: postgres:17.9-bookworm
+    environment:
+      POSTGRES_DB: quality_gate
+      POSTGRES_USER: booking
+      POSTGRES_PASSWORD: booking-demo
+    volumes:
+      - booking-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U booking -d quality_gate"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:3000:3001"
+    environment:
+      DATABASE_URL: postgresql://booking:booking-demo@database:5432/quality_gate
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  booking-data:

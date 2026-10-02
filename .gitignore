@@ -6,3 +6,11 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Generated application data and builds
+.local/
+dist/
+.env
+.env.*
+!.env.example
+*.log
