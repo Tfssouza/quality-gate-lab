@@ -1,0 +1,262 @@
+:root {
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  color: #18302d;
+  background: #f4f6f1;
+  font-synthesis: none;
+  line-height: 1.5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+header,
+main,
+footer {
+  max-width: 1200px;
+  margin: auto;
+  padding: 24px 32px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #d9e1d8;
+}
+
+.brand {
+  color: inherit;
+  text-decoration: none;
+  font-size: 22px;
+  font-weight: 750;
+}
+
+.brand span {
+  display: block;
+  font-size: 12px;
+  font-weight: 450;
+  color: #4d655f;
+  letter-spacing: 1px;
+}
+
+.tag,
+.badge {
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  background: #e3ebe1;
+  color: #304d43;
+}
+
+.intro {
+  margin: 38px 0;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 12px;
+  font-weight: 650;
+  color: #466251;
+}
+
+h1 {
+  font-size: clamp(36px, 6vw, 64px);
+  line-height: 1.05;
+  letter-spacing: -2px;
+  margin: 14px 0 20px;
+  font-weight: 700;
+}
+
+h2 {
+  font-size: 23px;
+  margin: 0 0 14px;
+}
+
+.intro > p:last-child {
+  color: #4d655f;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #d9e1d8;
+  border-radius: 16px;
+  padding: 28px;
+}
+
+.login {
+  max-width: 460px;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+input {
+  font: inherit;
+  border: 1px solid #85968b;
+  border-radius: 7px;
+  padding: 11px;
+}
+
+label {
+  font-weight: 600;
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  padding: 11px 16px;
+  border: 1px solid #214d3a;
+  border-radius: 7px;
+  background: #214d3a;
+  color: #fff;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+form button {
+  margin-top: 12px;
+}
+
+.secondary {
+  background: transparent;
+  color: #214d3a;
+}
+
+input:focus-visible,
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible {
+  outline: 3px solid #986100;
+  outline-offset: 3px;
+}
+
+details {
+  margin-top: 24px;
+  font-size: 13px;
+}
+
+summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.account {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin: 20px 0;
+}
+
+.workspace {
+  display: grid;
+  align-items: start;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 24px;
+}
+
+.sessions {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sessions li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  border-top: 1px solid #e4eae2;
+  padding: 20px 0;
+}
+
+.sessions li p {
+  font-size: 13px;
+  color: #506559;
+  margin: 6px 0;
+}
+
+.muted {
+  color: #506559;
+  font-size: 13px;
+}
+
+.alert {
+  background: #fff0ed;
+  border: 1px solid #bd5f50;
+  border-radius: 8px;
+  padding: 14px;
+  color: #872e21;
+}
+
+.status {
+  color: #214d3a;
+  min-height: 0;
+}
+
+.status:empty {
+  display: none;
+}
+
+.badge.cancelled {
+  background: #f0eee8;
+  color: #5c574c;
+}
+
+footer {
+  font-size: 12px;
+  color: #506559;
+  margin-top: 36px;
+  border-top: 1px solid #d9e1d8;
+}
+
+@media (max-width: 720px) {
+  header,
+  main,
+  footer {
+    padding: 20px;
+  }
+
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  header > .tag {
+    display: none;
+  }
+
+  .account {
+    align-items: flex-start;
+  }
+
+  .account p {
+    margin: 0;
+    font-size: 13px;
+  }
+
+  .sessions li {
+    flex-wrap: wrap;
+  }
+
+  .card {
+    padding: 22px;
+  }
+}
